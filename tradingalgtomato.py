@@ -65,8 +65,7 @@ class Trader:
 
                 MR_ENTRY = 1.5
                 MR_FULL = 4.0
-                MR_MAX_LONG = 30
-                MR_MAX_SHORT = 12
+                MR_MAX_POS = 30
 
                 TAKER_EDGE = 1
                 TAKER_MR_EXTRA = 1
@@ -116,15 +115,16 @@ class Trader:
                 # ------------------------------------------
                 deviation = (mid_price - slow_ema) / volatility
 
+                trend_strength = abs(fast_ema - slow_ema) / volatility
+                trend_dampen = max(0.3, 1.0 - 0.3 * max(0.0, trend_strength - 1.0))
+
                 if abs(deviation) < MR_ENTRY:
                     mr_target = 0
                 else:
                     excess = abs(deviation) - MR_ENTRY
                     scale = min(1.0, excess / (MR_FULL - MR_ENTRY))
-                    if deviation > 0:
-                        mr_target = -int(scale * MR_MAX_SHORT)
-                    else:
-                        mr_target = int(scale * MR_MAX_LONG)
+                    mr_target = int(scale * MR_MAX_POS) * (-1 if deviation > 0 else 1)
+                    mr_target = int(mr_target * trend_dampen)
 
                 # ------------------------------------------
                 # Taker: take mispriced orders & work toward target
@@ -132,7 +132,7 @@ class Trader:
                 position_gap = mr_target - current_position
 
                 if position_gap > 0:
-                    urgency = min(1.0, position_gap / MR_MAX_LONG)
+                    urgency = min(1.0, position_gap / MR_MAX_POS)
                     edge = TAKER_EDGE + int(urgency * TAKER_MR_EXTRA)
                     max_buy_price = fair_price + edge
                     remaining = min(position_gap, position_limit - current_position)
@@ -148,7 +148,7 @@ class Trader:
                                 remaining -= qty
 
                 elif position_gap < 0:
-                    urgency = min(1.0, -position_gap / MR_MAX_LONG)
+                    urgency = min(1.0, -position_gap / MR_MAX_POS)
                     edge = TAKER_EDGE + int(urgency * TAKER_MR_EXTRA)
                     min_sell_price = fair_price - edge
                     remaining = min(-position_gap, position_limit + current_position)
