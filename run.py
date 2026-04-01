@@ -41,5 +41,5 @@ def plot_trade_prices(csv_filepath):
 
 if __name__ == "__main__":
     # Replace with the actual name of your CSV file if it's different
-    file_name = 'trades_round_0_day_-1.csv'
+    file_name = 'trades_round_0_day_-2.csv'
     plot_trade_prices(file_name)

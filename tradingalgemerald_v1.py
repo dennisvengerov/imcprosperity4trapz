@@ -89,17 +89,17 @@ class Trader:
                             current_position -= trade_volume
                             
             # --- E. "Maker" Strategy: Quote our remaining position capacity ---
-            # After taking whatever we can, place standing orders in the order book
-            # We quote slightly wider to earn the spread (e.g., +/- 2 from fair price)
             buy_capacity = position_limit - current_position
             sell_capacity = position_limit + current_position
-            
+
+            pos_skew = int(round(4.0 * current_position / position_limit))
+            maker_bid = fair_price - 6 - pos_skew
+            maker_ask = fair_price + 6 - pos_skew
+
             if buy_capacity > 0:
-                maker_bid = fair_price - 6 
                 orders.append(Order(symbol, maker_bid, buy_capacity))
-                
+
             if sell_capacity > 0:
-                maker_ask = fair_price + 6
                 orders.append(Order(symbol, maker_ask, -sell_capacity))
                 
             # Attach the orders to the results dictionary
