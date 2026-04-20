@@ -4,7 +4,7 @@ As an agent, you will always reference the rules and visualizations.
 
 rules wiki link: https://imc-prosperity.notion.site/prosperity-4-wiki
 
-LOOK AT STOCK VISUALIZATIONS inside round 1 folder (the .png) TO SEE THE PRICE AND VOLUME TRENDS VISUALLY
+LOOK AT STOCK VISUALIZATIONS inside round 2 folder (the .png) TO SEE THE PRICE AND VOLUME TRENDS VISUALLY
 Summarized:
 
 Overview: What Prosperity 4 Is
@@ -89,15 +89,41 @@ Respect the 900 ms tick budget — avoid heavy numpy/statsmodels fits inside run
 Persist any rolling state via traderData (jsonpickle-serialized), not globals.
 Remember the position-limit rejection rule is per-side-aggregate — if you're at position +78/80 and submit two buys of size 5 each, both get rejected, not just one.
 What's NOT Yet on the Wiki (but expected from past Prosperity years)
-Rounds 2–5 pages exist as links on the main wiki but are gated until each round opens. Based on Prosperity 3, you should expect later rounds to introduce:
 
-Options / derivatives pricing (Black-Scholes-ish products).
-Pair-tradable basket products (e.g., "picnic basket" = weighted sum of other products).
-Cross-exchange arbitrage via the conversion mechanism (hence the ConversionObservation fields for tariffs/transport).
-Weather/observation-driven products (the sunlight/humidity fields in ConversionObservation are the giveaway).
-If you'd like, I can now:
+Round 2 Summary
 
-Pull the code in tradingalgemerald_v1.py and sanity-check it against the wiki's API spec.
-Analyze the Round 1 CSVs to find the "hidden pattern" in ASH_COATED_OSMIUM (equivalent, for your files, to checking the historical Round 1 data's second product).
-Draft a starter Trader class tuned to the position-limit and time-budget constraints above.
+## Overview
+Round 2 introduces a competitive bidding mechanism for market access and a strategic investment challenge for your trading outpost. You will continue trading `ASH_COATED_OSMIUM` and `INTARIAN_PEPPER_ROOT` with the same position limits (80 for both).
 
+## Algorithmic Challenge: "Limited Market Access"
+The core addition to the algorithmic challenge is the **Market Access Fee (MAF)**.
+
+### The MAF Mechanism
+*   **What it is:** A blind auction where you bid a one-time fee (in XIRECs) to gain access to an additional 25% of market quotes.
+*   **How to bid:** Implement a `bid(self)` method in your `Trader` class that returns an integer representing your bid amount.
+    ```python
+    class Trader:
+        def bid(self) -> int:
+            return 1000 # Example bid
+    ```
+*   **Winning the auction:** The top 50% of bids across all participants win the extra market access. The threshold is determined by the median bid of all submitted `trader.py` files (missing files or those without a `bid()` function are treated as bidding 0; negative bids are treated as 0).
+*   **Cost:** If you are in the top 50%, the amount you bid is subtracted from your Round 2 profits. If you are in the bottom 50%, you pay nothing but only see the standard 80% of quotes.
+    *   **Winners:** `Final PnL = Round 2 Trading Profit - Bid Amount`
+    *   **Losers:** `Final PnL = Round 2 Trading Profit`
+*   **Testing:** During local/sandbox testing, the MAF is ignored, and you will only interact with the default 80% of quotes (which is slightly randomized to prevent overfitting). The actual auction only happens during the final evaluation of the round.
+*   **Strategy:** The goal is game-theoretical: bid just enough to be in the top 50% without overpaying, as every XIREC over the threshold directly reduces your final PnL.
+
+
+
+## Visualizations Summary (Round 2)
+Based on the `round2_visualizations.png` charts for `INTARIAN_PEPPER_ROOT` and `ASH_COATED_OSMIUM`:
+
+### INTARIAN_PEPPER_ROOT
+*   **Trend & Scale:** Displays a perfectly linear, deterministic upward trend. The mid-price rises constantly from 11000 up to 14000 over the 30,000 continuous time steps.
+*   **Spread Size Distribution:** Bimodal spread distribution. The vast majority of spreads are tightly clustered between 12 and 19 (peaking at 14-15). There is a tiny secondary cluster at very low spreads (2-4).
+*   **Cumulative Volume Imbalance:** Generally trends upwards, ending highly positive (~1250 net buying pressure), indicating sustained buying momentum that aligns with the price increase.
+
+### ASH_COATED_OSMIUM
+*   **Trend & Scale:** Highly volatile and mean-reverting. The price oscillates rapidly in a tight band, mostly fluctuating between roughly 9980 and 10020. The fast and slow SMAs track this volatility closely, suggesting no long-term directional drift.
+*   **Spread Size Distribution:** Extremely tight and consistent spread. The overwhelming majority of spreads are exactly 16. Other spread sizes (17, 18, 19) exist but are a fraction of the dominant 16-tick spread.
+*   **Cumulative Volume Imbalance:** Highly oscillatory with wide swings from roughly -400 to +1000. It does not show a clear long-term direction, reinforcing the mean-reverting nature of the product's price.
