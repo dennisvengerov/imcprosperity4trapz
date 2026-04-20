@@ -70,6 +70,9 @@ OSMIUM_MR_THRESHOLD = 4              # maker one-unit skew when |dev| > 4
 OSMIUM_MR_SWEEP = 8                  # v2=15 -> v3=8: sweep earlier (1.6σ)
 OSMIUM_MR_SWEEP_PER_LEVEL = 15       # cap per price level during a sweep
 OSMIUM_HEAVY_INV = 60                # |pos| > 60 -> widen aggressive side by 1
+OSMIUM_MAKER_MAX_SIZE = 60           # cap each maker quote to limit single-tick
+                                     # inventory swings (observed ±80 swings at
+                                     # full cap on the 1k-tick sandbox test).
 
 
 # ==================================================================
@@ -362,9 +365,15 @@ class Trader:
         maker_bid = min(maker_bid, best_ask - 1)
         maker_ask = max(maker_ask, best_bid + 1)
 
-        if buy_cap > 0 and maker_bid > 0:
-            orders.append(Order(OSMIUM, maker_bid, buy_cap))
-        if sell_cap > 0:
-            orders.append(Order(OSMIUM, maker_ask, -sell_cap))
+        # Cap maker quote size per side so one adverse-selection burst can't
+        # flip position by ~80 units in a single tick (see round2strat.md notes
+        # after the 1k-tick sandbox test).
+        maker_bid_size = min(buy_cap, OSMIUM_MAKER_MAX_SIZE)
+        maker_ask_size = min(sell_cap, OSMIUM_MAKER_MAX_SIZE)
+
+        if maker_bid_size > 0 and maker_bid > 0:
+            orders.append(Order(OSMIUM, maker_bid, maker_bid_size))
+        if maker_ask_size > 0:
+            orders.append(Order(OSMIUM, maker_ask, -maker_ask_size))
 
         return orders
